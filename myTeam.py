@@ -93,7 +93,7 @@ class DummyAgent(CaptureAgent):
 
     if a > threshold:
       if self.red:
-        nextMove = gameState.getLegalActions
+        nextMove = gameState.getLegalActions(self.index)
         print nextMove
         if Directions.WEST in nextMove:
           return Directions.WEST
