@@ -52,17 +52,32 @@ class DummyAgent(CaptureAgent):
   You should look at baselineTeam.py for more details about how to
   create an agent as this is the bare minimum.
   """
+  # bait =[]
 
+  lastInHomePosition = (0,0)
 
   def registerInitialState(self, gameState):
+
+    # global bait
+    # foodList = self.getFoodYouAreDefending(gameState).asList()
+    # if self.red:
+    #     minDis = max([food[1] for food in foodList])
+    # else:
+    #     minDis = min([food[1] for food in foodList])
+    # bait = [f for f in foodList if food[1] == minDis]
     self.start = gameState.getAgentPosition(self.index)
     CaptureAgent.registerInitialState(self, gameState)
-
 
   def chooseAction(self, gameState):
     """
     Picks among the actions with the highest Q(s,a).
     """
+    # global lastInHomePosition
+    myself = self.getSuccessor(gameState, Directions.STOP)
+    # if not myself.getAgentState(self.index).isPacman:
+    #   lastInHomePosition = myself.getAgentState(self.index).getPosition()
+    #
+    # print "pos ", lastInHomePosition
     actions = gameState.getLegalActions(self.index)
 
     # You can profile your evaluation time by uncommenting these lines
@@ -86,25 +101,34 @@ class DummyAgent(CaptureAgent):
           bestDist = dist
       return bestAction
 
-    myself = self.getSuccessor(gameState, Directions.STOP)
+
     a= myself.getAgentState(self.index).numCarrying
     print "carrying ", a
     threshold = 5
 
     if a > threshold:
-      if self.red:
-        nextMove = gameState.getLegalActions(self.index)
-        print nextMove
-        if Directions.WEST in nextMove:
-          return Directions.WEST
-        if Directions.NORTH in nextMove:
-          return Directions.NORTH
-        if Directions.SOUTH in nextMove:
-          return Directions.SOUTH
-        if Directions.EAST in nextMove:
-          return Directions.EAST
+      # nextMove = gameState.getLegalActions(self.index)
+      # print nextMove
+      # if Directions.WEST in nextMove:
+      #   return Directions.WEST
+      # if Directions.NORTH in nextMove:
+      #   return Directions.NORTH
+      # if Directions.SOUTH in nextMove:
+      #   return Directions.SOUTH
+      # if Directions.EAST in nextMove:
+      #   return Directions.EAST
+      values = [self.huristicToHome(gameState, a) for a in actions]
+      maxValue = max(values)
+      bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+
+      return random.choice(bestActions)
 
     return random.choice(bestActions)
+
+  def huristicToHome(self, gameState, action):
+    features = self.getFeatures2(gameState, action)
+    weights = self.getWeights2(gameState, action)
+    return features * weights
 
   def scape(self, gameState, ):
     actions = gameState.getLegalActions(self.index)
@@ -159,6 +183,19 @@ class OffensiveDummyAgent(DummyAgent):
   we give you to get an idea of what an offensive agent might look like,
   but it is by no means the best or only way to build an offensive agent.
   """
+
+  def chooseAction(self, gameState):
+    """
+    Picks among the actions with the highest Q(s,a).
+    """
+    global lastInHomePosition
+    myself = self.getSuccessor(gameState, Directions.STOP)
+    if not myself.getAgentState(self.index).isPacman:
+      lastInHomePosition = myself.getAgentState(self.index).getPosition()
+
+    print "pos ", lastInHomePosition
+    return DummyAgent.chooseAction(self, gameState)
+
   def getFeatures(self, gameState, action):
     features = util.Counter()
     successor = self.getSuccessor(gameState, action)
@@ -174,7 +211,7 @@ class OffensiveDummyAgent(DummyAgent):
     if len(invaders) > 0:
       dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
       features['invaderDistance'] = min(dists)
-      print "me to enemy %d" , features['invaderDistance']
+      # print "me to enemy %d" , features['invaderDistance']
 
 
 
@@ -192,12 +229,12 @@ class OffensiveDummyAgent(DummyAgent):
         # distance to enemy
         if len(invaders) > 0 and len(enemy) > 0:
             tmpToEnemy = self.getMazeDistance(myPos, enemy.__getitem__(0).getPosition())
-            print "enemy pos ", enemy.__getitem__(0).getPosition()
+            # print "enemy pos ", enemy.__getitem__(0).getPosition()
         else:
             tmpToEnemy = 0
         # -1 to us && 1 to enemy and use max of them
         if tmpToEnemy - tmpToMe > tmpValue:
-            print " food to enemy : %d\n", tmpToEnemy
+            # print " food to enemy : %d\n", tmpToEnemy
             # print " food to me : %d\n", tmpToMe
             # print "bye"
             tmpValue = tmpToEnemy - tmpToMe
@@ -241,6 +278,26 @@ class OffensiveDummyAgent(DummyAgent):
 
   def getWeights(self, gameState, action):
     return {'successorScore': 100, 'foodEvaluation': 1, 'invaderDistance': 1}
+
+  def getFeatures2(self, gameState, action):
+    features = util.Counter()
+    successor = self.getSuccessor(gameState, action)
+    foodList = self.getFood(successor).asList()
+    features['successorScore'] = -len(foodList)  # self.getScore(successor)
+    myPos = successor.getAgentState(self.index).getPosition()
+
+    self.getTeam(gameState)
+
+    global lastInHomePosition
+    if self.red:
+      minDistance = self.getMazeDistance(myPos, lastInHomePosition)
+    else:
+      minDistance = self.getMazeDistance(myPos, lastInHomePosition)
+    features['minDistance'] = minDistance
+    return features
+
+  def getWeights2(self, gameState, action):
+    return {'successorScore': 100, 'minDistance': -1}
 
 class DefensiveDummyAgent(DummyAgent):
   """
