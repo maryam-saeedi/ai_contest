@@ -103,7 +103,7 @@ class DummyAgent(CaptureAgent):
 
 
     a= myself.getAgentState(self.index).numCarrying
-    print "carrying ", a
+    # print "carrying ", a
     threshold = 5
 
     if a > threshold:
@@ -193,7 +193,7 @@ class OffensiveDummyAgent(DummyAgent):
     if not myself.getAgentState(self.index).isPacman:
       lastInHomePosition = myself.getAgentState(self.index).getPosition()
 
-    print "pos ", lastInHomePosition
+    # print "pos ", lastInHomePosition
     return DummyAgent.chooseAction(self, gameState)
 
   def getFeatures(self, gameState, action):
